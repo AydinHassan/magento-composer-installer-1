@@ -7,6 +7,17 @@ use Cotya\ComposerTestFramework;
 class IssueC039Test extends ComposerTestFramework\PHPUnit\FullStackTestCase
 {
 
+    /**
+     * @return \SplFileInfo
+     */
+    protected function getArtifactDir()
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return new \SplFileInfo("C:/ComposerTests/artifact");
+        }
+
+        return new \SplFileInfo(sprintf('%s/ComposerTests/artifact', sys_get_temp_dir()));
+    }
 
     /**
      * @group regression
@@ -15,9 +26,6 @@ class IssueC039Test extends ComposerTestFramework\PHPUnit\FullStackTestCase
     {
         $composer = new ComposerTestFramework\Composer\Wrapper();
         $projectDirectory = new \SplFileInfo(self::getTempComposerProjectPath());
-
-
-        $artifactDirectory = new \SplFileInfo(__DIR__.'/../../../../../tests/FullStackTest/artifact');
 
         $testFilePath = $projectDirectory->getPathname().
             '/build/app/design/frontend/test/default/updateFileRemove/design/test1.phtml';
@@ -28,7 +36,7 @@ class IssueC039Test extends ComposerTestFramework\PHPUnit\FullStackTestCase
             'repositories' => [
                 [
                     'type' => 'artifact',
-                    'url' => $artifactDirectory->getRealPath(),
+                    'url' => $this->getArtifactDir()->getRealPath(),
                 ],
                 [
                     'type' => 'composer',
@@ -57,7 +65,7 @@ class IssueC039Test extends ComposerTestFramework\PHPUnit\FullStackTestCase
             'repositories' => [
                 [
                     'type' => 'artifact',
-                    'url' => $artifactDirectory->getRealPath(),
+                    'url' => $this->getArtifactDir()->getRealPath(),
                 ],
                 [
                     'type' => 'composer',

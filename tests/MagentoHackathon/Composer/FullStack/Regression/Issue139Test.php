@@ -14,23 +14,30 @@ class Issue139Test extends ComposerTestFramework\PHPUnit\FullStackTestCase
 {
 
     /**
+     * @return \SplFileInfo
+     */
+    protected function getArtifactDir()
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return new \SplFileInfo(sprintf("C:/ComposerTests/artifact"));
+        }
+
+        return new \SplFileInfo(sprintf('%s/ComposerTests/artifact', sys_get_temp_dir()));
+    }
+
+    /**
      * @group regression
      */
     public function testCreateProject()
     {
         $composer = new ComposerTestFramework\Composer\Wrapper();
         $projectDirectory = new \SplFileInfo(self::getTempComposerProjectPath());
-
-
-        $artifactDirectory = new \SplFileInfo(__DIR__.'/../../../../../tests/FullStackTest/artifact');
-
-
         $composerJson = new  \SplTempFileObject();
         $json = [
             'repositories' => [
                 [
                     'type' => 'artifact',
-                    'url' => $artifactDirectory->getRealPath(),
+                    'url' => $this->getArtifactDir()->getRealPath(),
                 ],
                 [
                     'type' => 'composer',

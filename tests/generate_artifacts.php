@@ -7,27 +7,33 @@ use Symfony\Component\Process\Process;
 echo "Artifact Generation started".PHP_EOL;
 
 $function = function() {
-    $projectPath = str_replace('\\', '/', realpath(__DIR__ . '/../'));
+    $projectPath = realpath(__DIR__ . '/../');
 
     $packagesPath = $projectPath . '/tests/res/packages';
-    
+
     $runInProjectRoot = function ($command) use ($projectPath) {
         $process = new Process($command, $projectPath);
         $process->setTimeout(120);
         $process->run();
         return $process;
     };
-    
+
     $composerCommand = 'composer';
     if (getenv('TRAVIS') == "true") {
         $composerCommand = $projectPath . '/composer.phar';
-    } elseif (getenv('APPVEYOR') == 'True') {
-        $composerCommand = 'php ' . $projectPath . '/composer.phar';
+    } elseif (getenv('APPVEYOR') == "True") {
+        $composerCommand = 'php C:\projects\random\customer\magento\composer.phar';
     } elseif ($runInProjectRoot('./composer.phar')->getExitCode() === 0) {
         $composerCommand = 'composer.phar';
     }
-    
-    $createComposerInstallerArtifact = function () use ($projectPath, $runInProjectRoot, $composerCommand) {
+
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        $artifactDir = "C:/ComposerTests/artifact";
+    } else {
+        $artifactDir = sprintf('%s/ComposerTests/artifact', sys_get_temp_dir());
+    }
+
+    $createComposerInstallerArtifact = function () use ($projectPath, $runInProjectRoot, $composerCommand, $artifactDir) {
 
         $command = 'perl -pi.bak -e \'s/"test_version"/"version"/g\' ./composer.json';
         $process = $runInProjectRoot($command);
@@ -55,7 +61,7 @@ $function = function() {
         @unlink($basePath.'/magento/vendor/theseer/directoryscanner/tests/_data/nested/empty');
         @unlink($basePath.'/magento-modules/vendor/theseer/directoryscanner/tests/_data/nested/empty');
 
-        $command = $composerCommand.' archive --format=zip --dir="tests/FullStackTest/artifact" -vvv';
+        $command = sprintf('%s archive --format=zip --dir="%s" -vvv', $composerCommand, $artifactDir);
         $process = $runInProjectRoot($command);
 
         if ($process->getExitCode() !== 0) {
@@ -102,11 +108,8 @@ $function = function() {
     /** @var \DirectoryIterator $fileinfo */
     foreach ($directory as $file) {
         if (!$file->isDot() && $file->isDir()) {
-            $args = ' archive --format=zip --dir="'.$projectPath.'/tests/FullStackTest/artifact" -vvv';
-            $process = new Process(
-                $composerCommand . $args,
-                $file->getPathname()
-            );
+            $args = sprintf('%s archive --format=zip --dir="%s" -vvv', $composerCommand, $artifactDir);
+            $process = new Process($args, $file->getPathname());
             $process->setTimeout(120);
             $process->run();
             if ($process->getExitCode() !== 0) {
@@ -128,7 +131,7 @@ $function = function() {
     };
     echo "finish create Composer Mock Artifact".PHP_EOL;
 };
-    
+
 $function();
 unset($function);
 

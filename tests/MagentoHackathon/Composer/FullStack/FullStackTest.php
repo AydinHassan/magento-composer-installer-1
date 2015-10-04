@@ -32,6 +32,12 @@ class FullStackTest extends FullStack\AbstractTest
 
     protected function installBaseMagento()
     {
+        $composerJson   = sprintf('%s/magento/composer.json', self::getBasePath());
+        $oldContent     = file_get_contents($composerJson);
+
+        $content = $this->rewriteArtifactUrl($oldContent, $this->getArtifactPath());
+        file_put_contents($composerJson, $content);
+
         $process = new Process(
             self::getComposerCommand().' install '.self::getComposerArgs().' --working-dir="./"',
             self::getBasePath().'/magento'
@@ -39,6 +45,8 @@ class FullStackTest extends FullStack\AbstractTest
         $process->setTimeout(300);
         $process->run();
         self::logProcessOutput($process, 'installBaseMagento');
+
+        file_put_contents($composerJson, $oldContent);
         $this->assertProcess($process);
     }
 
@@ -106,10 +114,8 @@ class FullStackTest extends FullStack\AbstractTest
         $methods = $this->getMethodRunConfigs();
 
         $runs = $methods[$method];
-
-            $this->prepareCleanDirectories();
-
-            $this->installBaseMagento();
+        $this->prepareCleanDirectories();
+        $this->installBaseMagento();
 
         foreach ($runs as $run => $value) {
             $this->changeModuleComposerFileAndUpdate(
@@ -161,6 +167,16 @@ class FullStackTest extends FullStack\AbstractTest
             self::getBasePath().'/magento-modules/'.$file,
             $magentoModuleComposerFile
         );
+
+        $content = $this->rewriteArtifactUrl(file_get_contents($magentoModuleComposerFile), $this->getArtifactPath());
+        file_put_contents($magentoModuleComposerFile, $content);
+
+        $content = json_decode(file_get_contents($magentoModuleComposerFile), true);
+        foreach ($content['repositories'] as $key => $repo) {
+            if ($repo['type'] == 'artifact') {
+                $content['repositories'][$key]['url'] = "C:/ComposerTests/artifact";
+            }
+        }
 
         $process = new Process(
             sprintf(
@@ -215,5 +231,33 @@ class FullStackTest extends FullStack\AbstractTest
         return array(
             'app/design/frontend/test/default/updateFileRemove/design/test1.phtml',
         );
+    }
+
+    /**
+     * @param string $fileContents
+     * @param string $url
+     * @return string string
+     */
+    private function rewriteArtifactUrl($fileContents, $url)
+    {
+        $content = json_decode($fileContents, true);
+        foreach ($content['repositories'] as $key => $repo) {
+            if ($repo['type'] == 'artifact') {
+                $content['repositories'][$key]['url'] = $url;
+            }
+        }
+        return json_encode($content, JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * @return string
+     */
+    private function getArtifactPath()
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return sprintf("C:/ComposerTests/artifact");
+        }
+
+        return sprintf("%s/ComposerTests/artifact", str_replace('\\', '/', sys_get_temp_dir()));
     }
 }

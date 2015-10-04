@@ -6,7 +6,7 @@
         },
         {
             "type": "artifact",
-            "url": "../artifact/"
+            "url": "artifact"
         }
     ],
     "require": {

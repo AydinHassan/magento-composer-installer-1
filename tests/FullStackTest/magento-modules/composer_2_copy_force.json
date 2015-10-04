@@ -8,7 +8,7 @@
 	"repositories": [
         {
           "type": "artifact",
-          "url": "../artifact/"
+          "url": "artifact"
         },
 		{
 			"type": "composer",
